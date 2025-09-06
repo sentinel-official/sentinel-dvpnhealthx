@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/sentinel-official/sentinel-go-sdk/core"
+	"github.com/sentinel-official/sentinel-go-sdk/libs/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -51,7 +52,7 @@ func (c *Context) SetupDatabase(ctx context.Context, cfg *config.Config) error {
 
 	db := client.Database(cfg.DB.Name)
 
-	// Return the MongoDB database instance for the specified database name.
+	// Attach the MongoDB database to the context.
 	c.WithDatabase(db)
 	return nil
 }
@@ -75,9 +76,12 @@ func (c *Context) Setup(ctx context.Context, cfg *config.Config) error {
 	c.WithKeyringBackend(cfg.Keyring.GetBackend())
 	c.WithRPCAddr(cfg.RPC.GetAddr())
 
+	log.Info("Setting up blockchain client")
 	if err := c.SetupClient(ctx, cfg); err != nil {
 		return fmt.Errorf("setting up blockchain client: %w", err)
 	}
+
+	log.Info("Setting up database")
 	if err := c.SetupDatabase(ctx, cfg); err != nil {
 		return fmt.Errorf("setting up database: %w", err)
 	}

@@ -427,8 +427,8 @@ github.com/sagikazarmark/locafero v0.10.0 h1:FM8Cv6j2KqIhM2ZK7HZjm4mpj9NBktLgowT
 github.com/sagikazarmark/locafero v0.10.0/go.mod h1:Ieo3EUsjifvQu4NZwV5sPd4dwvu0OCgEQV7vjc9yDjw=
 github.com/sasha-s/go-deadlock v0.3.5 h1:tNCOEEDG6tBqrNDOX35j/7hL5FcFViG6awUGROb2NsU=
 github.com/sasha-s/go-deadlock v0.3.5/go.mod h1:bugP6EGbdGYObIlx7pUZtWqlvo8k9H6vCBBsiChJQ5U=
-github.com/sentinel-official/sentinel-go-sdk v1.0.0-rc.6.0.20250906120819-b37c50d18c9c h1:Q7s7BGAzr7LwS9j5pX5/gjdmcbbfj2zqeH4ZmT/SzJ0=
-github.com/sentinel-official/sentinel-go-sdk v1.0.0-rc.6.0.20250906120819-b37c50d18c9c/go.mod h1:dgPFIfSccQ1th9xdwUGnMsdatGpYTA6p13SEbSX4UB8=
+github.com/sentinel-official/sentinel-go-sdk v1.0.0-rc.6.0.20250907163809-13fa559c421e h1:A3ATZ6blvuf5+aJ82AtDrmIvNqOxIJWaMtVwHRjmMKY=
+github.com/sentinel-official/sentinel-go-sdk v1.0.0-rc.6.0.20250907163809-13fa559c421e/go.mod h1:Gq0+WlluP3Kg495B4mqgrUVn30m0YBGV8Nyu01A5V34=
 github.com/sentinel-official/sentinelhub/v12 v12.0.0-rc.11 h1:B3ylnKZSLP9aDYnS2f98Gx/QTohPuD36tjl75kYJSMs=
 github.com/sentinel-official/sentinelhub/v12 v12.0.0-rc.11/go.mod h1:LXcOAEffAn4Pw58xhoYN9j8ZVuM02OCgPNTI6lkGG2E=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=

@@ -46,6 +46,7 @@ func (c *Context) SetupDatabase(ctx context.Context, cfg *config.Config) error {
 	if err != nil {
 		return fmt.Errorf("connecting to mongodb: %w", err)
 	}
+
 	if err := client.Ping(ctx, nil); err != nil {
 		return fmt.Errorf("ping mongodb: %w", err)
 	}
@@ -54,6 +55,7 @@ func (c *Context) SetupDatabase(ctx context.Context, cfg *config.Config) error {
 
 	// Attach the MongoDB database to the context.
 	c.WithDatabase(db)
+
 	return nil
 }
 
@@ -68,6 +70,7 @@ func (c *Context) SetupClient(_ context.Context, cfg *config.Config) error {
 
 	// Assign the initialized client to the context.
 	c.WithClient(cc)
+
 	return nil
 }
 
@@ -77,11 +80,13 @@ func (c *Context) Setup(ctx context.Context, cfg *config.Config) error {
 	c.WithRPCAddr(cfg.RPC.GetAddr())
 
 	log.Info("Setting up blockchain client")
+
 	if err := c.SetupClient(ctx, cfg); err != nil {
 		return fmt.Errorf("setting up blockchain client: %w", err)
 	}
 
 	log.Info("Setting up database")
+
 	if err := c.SetupDatabase(ctx, cfg); err != nil {
 		return fmt.Errorf("setting up database: %w", err)
 	}

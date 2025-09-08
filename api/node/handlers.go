@@ -26,6 +26,7 @@ func handlerGetNode(c *core.Context) gin.HandlerFunc {
 		if err != nil {
 			err := fmt.Errorf("parsing request from context: %w", err)
 			ctx.JSON(http.StatusBadRequest, types.NewResponseError(1, err))
+
 			return
 		}
 
@@ -43,6 +44,7 @@ func handlerGetNode(c *core.Context) gin.HandlerFunc {
 		if err != nil {
 			err := fmt.Errorf("querying node from database: %w", err)
 			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(2, err))
+
 			return
 		}
 
@@ -56,6 +58,7 @@ func handlerGetNodes(c *core.Context) gin.HandlerFunc {
 		if err != nil {
 			err := fmt.Errorf("parsing request from context: %w", err)
 			ctx.JSON(http.StatusBadRequest, types.NewResponseError(1, err))
+
 			return
 		}
 
@@ -75,6 +78,7 @@ func handlerGetNodes(c *core.Context) gin.HandlerFunc {
 		if err != nil {
 			err := fmt.Errorf("querying nodes from database: %w", err)
 			ctx.JSON(http.StatusInternalServerError, types.NewResponseError(2, err))
+
 			return
 		}
 
@@ -92,6 +96,7 @@ func handlerInspectNode(c *core.Context) gin.HandlerFunc {
 		if err != nil {
 			return fmt.Errorf("querying node from database: %w", err)
 		}
+
 		if !item.IsZero() {
 			return nil
 		}
@@ -100,6 +105,7 @@ func handlerInspectNode(c *core.Context) gin.HandlerFunc {
 		if err != nil {
 			return fmt.Errorf("upserting key %q: %w", addr, err)
 		}
+
 		if err := c.UpsertGrants(ctx, keyAddr); err != nil {
 			return fmt.Errorf("upserting grants for addr %q: %w", keyAddr.String(), err)
 		}
@@ -113,11 +119,13 @@ func handlerInspectNode(c *core.Context) gin.HandlerFunc {
 	}
 
 	m := &sync.Map{}
+
 	return func(ctx *gin.Context) {
 		req, err := NewRequestInspectNode(ctx)
 		if err != nil {
 			err := fmt.Errorf("parsing request from context: %w", err)
 			ctx.JSON(http.StatusBadRequest, types.NewResponseError(1, err))
+
 			return
 		}
 
@@ -125,6 +133,7 @@ func handlerInspectNode(c *core.Context) gin.HandlerFunc {
 		if loaded {
 			err := fmt.Errorf("inspection for node %q is already in progress", req.Body.Addr)
 			ctx.JSON(http.StatusConflict, types.NewResponseError(2, err))
+
 			return
 		}
 
@@ -142,6 +151,7 @@ func handlerInspectNode(c *core.Context) gin.HandlerFunc {
 			eg := &errgroup.Group{}
 			eg.Go(func() error {
 				log.Info("Setting up inspection", "addr", addr)
+
 				if err := setup(ctx, addr); err != nil {
 					return fmt.Errorf("setting up inspection: %w", err)
 				}
@@ -154,7 +164,7 @@ func handlerInspectNode(c *core.Context) gin.HandlerFunc {
 				}
 
 				if err := json.Unmarshal(output, &item.Location); err != nil {
-					return fmt.Errorf("unmarshaling inpection output: %w", err)
+					return fmt.Errorf("unmarshaling inspection output: %w", err)
 				}
 
 				return nil
@@ -168,11 +178,11 @@ func handlerInspectNode(c *core.Context) gin.HandlerFunc {
 
 			if _, err := database.NodeReplaceOne(ctx, c.Database(), filter, item); err != nil {
 				log.Error("Replacing node in database", "addr", addr, "cause", err)
+
 				return
 			}
-		}(context.TODO(), req.Body.Addr)
+		}(context.Background(), req.Body.Addr)
 
 		ctx.JSON(http.StatusCreated, types.NewResponseResult(nil))
-		return
 	}
 }

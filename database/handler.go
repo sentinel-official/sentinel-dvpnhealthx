@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -49,7 +50,11 @@ func (db *handler) FindOne(ctx context.Context, colName string, filter bson.M, t
 		return handleError(err)
 	}
 
-	return result.Decode(target)
+	if err := result.Decode(target); err != nil {
+		return fmt.Errorf("decoding result: %w", err)
+	}
+
+	return nil
 }
 
 // FindAll retrieves multiple documents matching filter and decodes them into target (pointer to a slice).
@@ -63,9 +68,15 @@ func (db *handler) FindAll(ctx context.Context, colName string, filter bson.M, t
 		return handleError(err)
 	}
 
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
-	return cursor.All(ctx, target)
+	if err := cursor.All(ctx, target); err != nil {
+		return fmt.Errorf("iterating results: %w", err)
+	}
+
+	return nil
 }
 
 // Aggregate runs an aggregation pipeline and decodes the results into target.
@@ -79,9 +90,15 @@ func (db *handler) Aggregate(ctx context.Context, colName string, pipeline []bso
 		return handleError(err)
 	}
 
-	defer cursor.Close(ctx)
+	defer func() {
+		_ = cursor.Close(ctx)
+	}()
 
-	return cursor.All(ctx, target)
+	if err := cursor.All(ctx, target); err != nil {
+		return fmt.Errorf("iterating results: %w", err)
+	}
+
+	return nil
 }
 
 // InsertOne inserts a document into the col.
@@ -90,7 +107,12 @@ func (db *handler) InsertOne(ctx context.Context, colName string, document inter
 	insertOpts := extractOptions[options.InsertOneOptions](opts)
 	col := db.Collection(colName, colOpts)
 
-	return col.InsertOne(ctx, document, insertOpts)
+	result, err := col.InsertOne(ctx, document, insertOpts)
+	if err != nil {
+		return nil, fmt.Errorf("inserting document: %w", err)
+	}
+
+	return result, nil
 }
 
 // UpdateOne updates a single document matching filter.
@@ -99,7 +121,12 @@ func (db *handler) UpdateOne(ctx context.Context, colName string, filter bson.M,
 	updateOpts := extractOptions[options.UpdateOptions](opts)
 	col := db.Collection(colName, colOpts)
 
-	return col.UpdateOne(ctx, filter, update, updateOpts)
+	result, err := col.UpdateOne(ctx, filter, update, updateOpts)
+	if err != nil {
+		return nil, fmt.Errorf("updating document: %w", err)
+	}
+
+	return result, nil
 }
 
 // UpdateMany updates multiple documents matching filter.
@@ -108,7 +135,12 @@ func (db *handler) UpdateMany(ctx context.Context, colName string, filter bson.M
 	updateOpts := extractOptions[options.UpdateOptions](opts)
 	col := db.Collection(colName, colOpts)
 
-	return col.UpdateMany(ctx, filter, update, updateOpts)
+	result, err := col.UpdateMany(ctx, filter, update, updateOpts)
+	if err != nil {
+		return nil, fmt.Errorf("updating documents: %w", err)
+	}
+
+	return result, nil
 }
 
 // ReplaceOne replaces a document matching filter with replacement.
@@ -117,7 +149,12 @@ func (db *handler) ReplaceOne(ctx context.Context, colName string, filter bson.M
 	replaceOpts := extractOptions[options.ReplaceOptions](opts)
 	col := db.Collection(colName, colOpts)
 
-	return col.ReplaceOne(ctx, filter, replacement, replaceOpts)
+	result, err := col.ReplaceOne(ctx, filter, replacement, replaceOpts)
+	if err != nil {
+		return nil, fmt.Errorf("replacing document: %w", err)
+	}
+
+	return result, nil
 }
 
 // DeleteOne deletes a single document matching filter.
@@ -126,7 +163,12 @@ func (db *handler) DeleteOne(ctx context.Context, colName string, filter bson.M,
 	deleteOpts := extractOptions[options.DeleteOptions](opts)
 	col := db.Collection(colName, colOpts)
 
-	return col.DeleteOne(ctx, filter, deleteOpts)
+	result, err := col.DeleteOne(ctx, filter, deleteOpts)
+	if err != nil {
+		return nil, fmt.Errorf("deleting document: %w", err)
+	}
+
+	return result, nil
 }
 
 // DeleteMany deletes multiple documents matching filter.
@@ -135,7 +177,12 @@ func (db *handler) DeleteMany(ctx context.Context, colName string, filter bson.M
 	deleteOpts := extractOptions[options.DeleteOptions](opts)
 	col := db.Collection(colName, colOpts)
 
-	return col.DeleteMany(ctx, filter, deleteOpts)
+	result, err := col.DeleteMany(ctx, filter, deleteOpts)
+	if err != nil {
+		return nil, fmt.Errorf("deleting documents: %w", err)
+	}
+
+	return result, nil
 }
 
 // CountDocuments returns the count of documents matching filter.
@@ -157,7 +204,11 @@ func (db *handler) DropCollection(ctx context.Context, colName string, opts ...i
 	colOpts := extractOptions[options.CollectionOptions](opts)
 	col := db.Collection(colName, colOpts)
 
-	return col.Drop(ctx)
+	if err := col.Drop(ctx); err != nil {
+		return fmt.Errorf("dropping collection: %w", err)
+	}
+
+	return nil
 }
 
 // BulkWrite performs a bulk write operation.
@@ -166,5 +217,10 @@ func (db *handler) BulkWrite(ctx context.Context, colName string, models []mongo
 	bulkOpts := extractOptions[options.BulkWriteOptions](opts)
 	col := db.Collection(colName, colOpts)
 
-	return col.BulkWrite(ctx, models, bulkOpts)
+	result, err := col.BulkWrite(ctx, models, bulkOpts)
+	if err != nil {
+		return nil, fmt.Errorf("bulk writing: %w", err)
+	}
+
+	return result, nil
 }

@@ -5,10 +5,10 @@ import (
 )
 
 type Node struct {
-	Addr      string          `json:"addr,omitempty" bson:"addr"`
-	Error     string          `json:"error,omitempty" bson:"error"`
-	Location  *geoip.Location `json:"location,omitempty" bson:"location"`
-	Timestamp int64           `json:"timestamp,omitempty" bson:"timestamp"`
+	Addr      string          `bson:"addr"      json:"addr,omitempty"`
+	Error     string          `bson:"error"     json:"error,omitempty"`
+	Location  *geoip.Location `bson:"location"  json:"location,omitempty"`
+	Timestamp int64           `bson:"timestamp" json:"timestamp,omitempty"`
 }
 
 func (n *Node) IsZero() bool {

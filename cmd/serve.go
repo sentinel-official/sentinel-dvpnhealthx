@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -33,12 +34,12 @@ func NewServeCmd(cfg *config.Config) *cobra.Command {
 			defer cancel()
 
 			// Create a new process manager and router.
-			manager := process.NewManager(ctx, "manager")
+			manager := process.NewManager("manager")
 			router := gin.Default()
 
 			// Function to set up everything before starting the server.
-			setupFunc := func() error {
-				return manager.Setup(func(ctx context.Context) error {
+			setupFunc := func(ctx context.Context) error {
+				return manager.Setup(ctx, func() error {
 					// Read the home directory from the configuration.
 					homeDir := viper.GetString("home")
 
@@ -80,17 +81,26 @@ func NewServeCmd(cfg *config.Config) *cobra.Command {
 			}
 
 			// Function to start the server.
-			startFunc := func() error {
-				return manager.Start(func(ctx context.Context) error {
+			startFunc := func(parent context.Context) (context.Context, error) {
+				return manager.Start(parent, func(ctx context.Context) error {
+					// Create a new ListenConfig
+					lc := &net.ListenConfig{}
+
 					// Create a TCP listener for the configured address.
-					l, err := net.Listen("tcp", cfg.API.GetAddr())
+					l, err := lc.Listen(ctx, "tcp", cfg.API.GetAddr())
 					if err != nil {
-						return fmt.Errorf("creating TCP listener on %q: %w", cfg.API.GetAddr(), err)
+						return fmt.Errorf("creating listener on %q: %w", cfg.API.GetAddr(), err)
+					}
+
+					// Configure the HTTP server
+					server := &http.Server{
+						Handler:           router,
+						ReadHeaderTimeout: 5 * time.Second,
 					}
 
 					// Start serving the HTTP requests on the listener in a goroutine.
-					manager.Go(func(ctx context.Context) error {
-						if err := http.Serve(l, router); err != nil {
+					manager.Go(ctx, func() error {
+						if err := server.Serve(l); err != nil {
 							return fmt.Errorf("serving: %w", err)
 						}
 
@@ -98,15 +108,14 @@ func NewServeCmd(cfg *config.Config) *cobra.Command {
 					})
 
 					// Manage graceful shutdown when the context is cancelled.
-					manager.Go(func(ctx context.Context) error {
+					manager.Go(ctx, func() error {
 						defer func() {
 							_ = l.Close()
 						}()
 
-						select {
-						case <-ctx.Done():
-							return ctx.Err()
-						}
+						<-ctx.Done()
+
+						return ctx.Err()
 					})
 
 					return nil
@@ -114,8 +123,8 @@ func NewServeCmd(cfg *config.Config) *cobra.Command {
 			}
 
 			// Wait function to handle the waiting logic after the server is started.
-			waitFunc := func() error {
-				return manager.Wait(nil)
+			waitFunc := func(ctx context.Context) error {
+				return manager.Wait(ctx, nil)
 			}
 
 			// Stop function to handle the stopping logic when the server is shutting down.
@@ -124,8 +133,8 @@ func NewServeCmd(cfg *config.Config) *cobra.Command {
 			}
 
 			// Perform setup before starting the server.
-			if err := setupFunc(); err != nil {
-				return fmt.Errorf("setting up: %w", err)
+			if err := setupFunc(ctx); err != nil {
+				return fmt.Errorf("setting up manager: %w", err)
 			}
 
 			// Create an error group for concurrent error handling.
@@ -133,12 +142,13 @@ func NewServeCmd(cfg *config.Config) *cobra.Command {
 
 			// Goroutine to handle the server start and wait logic.
 			eg.Go(func() error {
-				if err := startFunc(); err != nil {
-					return fmt.Errorf("starting: %w", err)
+				ctx, err := startFunc(ctx)
+				if err != nil {
+					return fmt.Errorf("starting manager: %w", err)
 				}
 
-				if err := waitFunc(); err != nil {
-					return fmt.Errorf("waiting: %w", err)
+				if err := waitFunc(ctx); err != nil {
+					return fmt.Errorf("waiting manager: %w", err)
 				}
 
 				return nil
@@ -148,7 +158,7 @@ func NewServeCmd(cfg *config.Config) *cobra.Command {
 			eg.Go(func() error {
 				<-ctx.Done()
 				if err := stopFunc(); err != nil {
-					return fmt.Errorf("stopping: %w", err)
+					return fmt.Errorf("stopping manager: %w", err)
 				}
 
 				return nil
@@ -156,7 +166,7 @@ func NewServeCmd(cfg *config.Config) *cobra.Command {
 
 			// Wait for all goroutines to finish.
 			if err := eg.Wait(); err != nil {
-				return err
+				return fmt.Errorf("waiting group: %w", err)
 			}
 
 			return nil

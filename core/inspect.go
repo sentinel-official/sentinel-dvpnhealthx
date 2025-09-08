@@ -35,7 +35,6 @@ func (c *Context) UpsertGrants(ctx context.Context, addr types.AccAddress) error
 
 		return msgs, nil
 	}()
-
 	if err != nil {
 		return fmt.Errorf("generating authz msgs: %w", err)
 	}
@@ -67,12 +66,12 @@ func (c *Context) UpsertGrants(ctx context.Context, addr types.AccAddress) error
 
 		return msgs, nil
 	}()
-
 	if err != nil {
 		return fmt.Errorf("generating feegrant msgs: %w", err)
 	}
 
 	var msgs []types.Msg
+
 	msgs = append(msgs, authzMsgs...)
 	msgs = append(msgs, feegrantMsgs...)
 
@@ -88,6 +87,7 @@ func (c *Context) UpsertKey(_ context.Context, name string) (types.AccAddress, e
 	if err != nil {
 		return nil, fmt.Errorf("getting key %q: %w", name, err)
 	}
+
 	if key == nil {
 		_, key, err = c.Client().CreateKey(name, "", "", "")
 		if err != nil {
@@ -103,7 +103,7 @@ func (c *Context) UpsertKey(_ context.Context, name string) (types.AccAddress, e
 	return addr, nil
 }
 
-func (c *Context) Inspect(_ context.Context, addr string) ([]byte, error) {
+func (c *Context) Inspect(ctx context.Context, addr string) ([]byte, error) {
 	granterAddr, err := c.Client().MsgFromAddr()
 	if err != nil {
 		return nil, fmt.Errorf("getting granter addr: %w", err)
@@ -114,21 +114,21 @@ func (c *Context) Inspect(_ context.Context, addr string) ([]byte, error) {
 		"--privileged",
 		"--rm",
 		"--tty",
-		"--volume", fmt.Sprintf("%s:/root/.sentinel-dvpncli", c.HomeDir()),
+		"--volume", c.HomeDir() + ":/root/.sentinel-dvpncli:ro",
 		"sentinel-dvpncli:latest",
 		"inspect",
 		"--log.level", "none",
+		"--max-price", c.MaxPrice().String(),
 		"--keyring.backend", c.KeyringBackend(),
 		"--rpc.addrs", c.RPCAddr(),
 		"--rpc.chain-id", c.ChainID(),
 		"--tx.authz-granter-addr", granterAddr.String(),
 		"--tx.fee-granter-addr", granterAddr.String(),
 		"--tx.from-name", addr,
-		"--max-price", c.MaxPrice().String(),
 		addr,
 	}
 
-	cmd := exec.Command("docker", args...)
+	cmd := exec.CommandContext(ctx, "docker", args...)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
